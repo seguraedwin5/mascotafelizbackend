@@ -39,6 +39,15 @@ export class Solicitud extends Entity {
   })
   idmascota: string;
 
+  @property({
+    type: 'string',
+  })
+  idplan?: string;
+
+  @property({
+    type: 'string',
+  })
+  idasesor?: string;
 
   constructor(data?: Partial<Solicitud>) {
     super(data);
