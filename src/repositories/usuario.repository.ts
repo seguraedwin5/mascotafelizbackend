@@ -8,6 +8,9 @@ export class UsuarioRepository extends DefaultCrudRepository<
   typeof Usuario.prototype.id,
   UsuarioRelations
 > {
+
+
+
   constructor(
     @inject('datasources.mascotafelizds') dataSource: MascotafelizdsDataSource,
   ) {

@@ -1,8 +1,8 @@
-import {inject} from '@loopback/core';
-import {BelongsToAccessor, DefaultCrudRepository} from '@loopback/repository';
+import {inject, Getter} from '@loopback/core';
+import {DefaultCrudRepository, repository, BelongsToAccessor} from '@loopback/repository';
 import {MascotafelizdsDataSource} from '../datasources';
 import {Administrador, AdministradorRelations, Usuario} from '../models';
-
+import {UsuarioRepository} from './usuario.repository';
 
 export class AdministradorRepository extends DefaultCrudRepository<
   Administrador,
@@ -13,9 +13,11 @@ export class AdministradorRepository extends DefaultCrudRepository<
   public readonly usuarioid: BelongsToAccessor<Usuario, typeof Administrador.prototype.id>;
 
   constructor(
-    @inject('datasources.mascotafelizds') dataSource: MascotafelizdsDataSource,
+    @inject('datasources.mascotafelizds') dataSource: MascotafelizdsDataSource, @repository.getter('UsuarioRepository') protected usuarioRepositoryGetter: Getter<UsuarioRepository>,
   ) {
     super(Administrador, dataSource);
+    this.usuarioid = this.createBelongsToAccessorFor('usuarioid', usuarioRepositoryGetter,);
+    this.registerInclusionResolver('usuarioid', this.usuarioid.inclusionResolver);
 
 
   }
