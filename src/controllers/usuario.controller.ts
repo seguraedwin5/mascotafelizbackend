@@ -1,30 +1,31 @@
+import {service} from '@loopback/core';
 import {
   Count,
   CountSchema,
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
-  post,
-  param,
-  get,
-  getModelSchemaRef,
-  patch,
-  put,
-  del,
-  requestBody,
-  response,
+  del, get,
+  getModelSchemaRef, HttpErrors, param, patch, post, put, requestBody,
+  response
 } from '@loopback/rest';
-import {Usuario} from '../models';
+import axios from 'axios';
+import {LLaves} from '../config/llaves';
+import {Credencial, Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
+import {AutenticacionService} from '../services';
 
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
-    public usuarioRepository : UsuarioRepository,
-  ) {}
+    public usuarioRepository: UsuarioRepository,
+
+    @service(AutenticacionService)
+    public autenticacionservice: AutenticacionService
+  ) { }
 
   @post('/usuarios')
   @response(200, {
@@ -44,8 +45,60 @@ export class UsuarioController {
     })
     usuario: Omit<Usuario, 'id'>,
   ): Promise<Usuario> {
-    return this.usuarioRepository.create(usuario);
+    let clave = this.autenticacionservice.GenerarPassword();
+    let clavecifrada = this.autenticacionservice.CifrarPassword(clave)
+    usuario.password = clavecifrada;
+    let u = await this.usuarioRepository.create(usuario);
+
+    //notificar correo
+    let receivermail = usuario.correo;
+    let subject = 'Usuario Registrado: Mascota Feliz';
+    let content = `
+    <div style="container-type:inline-size">
+      <h1>Bienvenido!! ${usuario.nombre} ${usuario.apellido} </h1></br>
+      <div>
+        <h2>Aqui estan tus credenciales de acceso a mascota feliz</h2>
+      </div>
+      <div>
+        <h3 style="color:blue">Usuario: <span style="color:black" >${usuario.correo}</span><h3></br>
+        <h3 style="color:blue">Password: <span style="color:black" >${clave}</span><h3></br>
+      </div>
+    </div>`;
+    axios.get(`${LLaves.urlServicioNotificaciones}/mail?receivermail=${receivermail}&subject=${subject}&content=${content}`)
+      .then((response: any) => {
+        console.log(response.data);
+      });
+
+    return u;
   }
+
+  @post('/loginusuario', {
+    responses: {
+      '200': {
+        description: 'Identificacion de  persona'
+      }
+    }
+  })
+  async LoginUsuario(
+    @requestBody() credenciales: Credencial
+  ) {
+    let u = await this.autenticacionservice.IdentificarUsuario(credenciales.usuario, credenciales.password);
+    if (u) {
+      let token = this.autenticacionservice.GenerarToken(u)
+      return {
+        datos: {
+          nombre: `${u.nombre} ${u.apellido}`,
+          correo: u.correo,
+          id: u.id,
+          rol: u.rol,
+        },
+        accestoken: token
+      };
+    } else {
+      throw new HttpErrors[401]('El usuario no existe')
+    }
+  };
+
 
   @get('/usuarios/count')
   @response(200, {
