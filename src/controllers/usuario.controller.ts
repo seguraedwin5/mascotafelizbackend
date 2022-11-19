@@ -92,7 +92,7 @@ export class UsuarioController {
           id: u.id,
           rol: u.rol,
         },
-        accestoken: token
+        accesstoken: token
       };
     } else {
       throw new HttpErrors[401]('El usuario no existe')
