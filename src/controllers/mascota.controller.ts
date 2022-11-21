@@ -57,6 +57,7 @@ export class MascotaController {
     return this.mascotaRepository.count(where);
   }
 
+  @authenticate.skip()
   @get('/mascotas')
   @response(200, {
     description: 'Array of Mascota model instances',
